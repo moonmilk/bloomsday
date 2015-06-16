@@ -1,0 +1,127 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+		"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+		<title>moonmilk bloomsday</title>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script> 
+		<script>
+			var voice;
+			var lastUtterance = "";
+			function utter() {
+				jQuery.get('utterance.txt').done(function(data) {
+					if (data == lastUtterance) {
+						setTimeout(utter, 3000);
+					}
+					else {
+						var limit = 250;
+						if (data.length > limit) {
+							// try to split a sentence
+							var bits = data.split('.');
+							var partial = "";
+							while (bits.length > 0 && (partial.length + bits[0].length) <= limit) {
+								partial = partial + bits.shift() + ".";
+							}
+							
+							// still too long?
+							if (partial.length==0 || partial.length > limit) {
+								// try a more dramatic cut
+								bits = data.split(',');
+								partial = "";
+								
+								while (bits.length > 0 && (partial.length + bits[0].length) <= limit) {
+									partial = partial + bits.shift() + ",";
+								}
+							}
+							
+							// stillll too long?
+							if (partial.length==0 || partial.length > limit) {
+								// give up and try the next utterance
+								setTimeout(utter, 2000);
+								return;
+							}
+							else {
+								data = partial;
+							}
+						}
+						
+						lastUtterance = data;
+						
+						$('#utterance').text(data);
+						
+						if (voice && window.location.hash=='#speak') {
+							var msg = new SpeechSynthesisUtterance();
+							msg.text = data;
+							msg.voice = voice;
+							msg.onend = utter;
+							window.speechSynthesis.speak(msg);
+						 }
+						 else {
+							setTimeout(utter, 3000);
+						 }
+					}
+				});
+			}
+			$(document).ready(function() {
+				if (window.speechSynthesis) {
+					if (window.speechSynthesis.getVoices().length==0) {
+						window.speechSynthesis.onvoiceschanged = prepareVoices;
+					}
+					else prepareVoices();
+				}
+				else utter();
+			});
+			
+			function prepareVoices() {
+				var voices = window.speechSynthesis.getVoices();
+				
+				// look for an irish voice (safari on osx 10.9.5 has one)
+				var accents = voices.filter(function(f) {return f.lang=='en-IE'});
+
+				// if not that, a british voice
+				if (accents.length == 0) accents = voices.filter(function(f) {return f.lang=='en-GB'});
+
+				// ok american
+				if (accents.length == 0) accents = voices.filter(function(f) {return f.lang=='en-US'});
+
+				// ok i give up
+				if (accents.length == 0) accents = [voices[0]];
+				
+				// look for a male voice (chrome google voices say male or female in some of the names)
+				var dude = accents.filter(function(f) {return f.name.match(/male/i)});
+				if (dude.length > 0) voice = dude[0];
+				
+				else voice = accents[0];
+				
+				utter();
+			}
+
+			
+		</script>
+		<script>
+		  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+		  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+		  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+		  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+		
+		  ga('create', 'UA-8659971-6', 'auto');
+		  ga('send', 'pageview');
+		
+		</script>
+
+	</head>
+	<body>
+		<center>
+		<h1>&nbsp;</h1>
+		<h2><span id="utterance"></span></h2>
+		<h1>&nbsp;</h1>
+		<small><a href="#speak">speak</a> | <a href="#">don't</a>
+		<h1>&nbsp;</h1>
+		<small>
+			for bloomsday 2015 by <a href="#speak">moonmilk</a><br/>
+			text from <a href="http://www.gutenberg.org/ebooks/4300">project gutenberg</a>
+		</small>
+
+	</body>
+</html>
+
